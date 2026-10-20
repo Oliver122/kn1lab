@@ -14,7 +14,7 @@ public class Send_Mail {
 	
 	public static void sendMail() {
 		try {
-			// your code here
+			System.out.println("Hallo Welt");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
