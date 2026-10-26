@@ -38,6 +38,14 @@ class MyTopo(Topo):
         self.addLink(r1, sw1)
         self.addLink(nas, r1)
 
+        # 2.2
+        burak = self.addHost('burak', ip='10.0.2.2/25')
+        r2 = self.addHost('r2', ip='10.0.2.1/25')
+        sw2 = self.addSwitch('sw2')
+
+        self.addLink(burak, sw2)
+        self.addLink(r2, sw2)
+        self.addLink(r1, r2)
 
 # configuration
 def conf(network):
@@ -45,6 +53,18 @@ def conf(network):
     network['r1'].cmd('ip addr add 10.0.0.1/26 dev r1-eth0') # dev -> device : ordnet dem Interface r1-eth0 des Knotens r1 die Adresse 10.0.0.1/26 zu.
     network['r1'].cmd('ip addr add 10.0.1.1/29 dev r1-eth1') # korrigiert von 10.0.2.1 -> 10.0.1.1
     network['r1'].cmd('sysctl net.ipv4.conf.all.forwarding=1') # aktiviert einkommende Pakete, die nicht an die eigene Adresse gerichtet sind, weiterzuleiten
+
+    # 2.2
+    network['r1'].cmd('ip addr add 10.0.1.64/31 dev r1-eth2')
+    network['r1'].cmd('ip route add 10.0.2.0/25 via 10.0.1.65')
+
+    # r2 config
+    network['r2'].cmd('ip addr add 10.0.2.1/25 dev r2-eth0')
+    network['r2'].cmd('ip addr add 10.0.1.65/31 dev r2-eth1')
+    network['r2'].cmd('ip route add 10.0.1.0/29 via 10.0.1.64')
+    network['r2'].cmd('sysctl net.ipv4.conf.all.forwarding=1')
+
+    network['burak'].cmd('ip route add default via 10.0.2.1')
 
     # client routing
     network['ela'].cmd('ip route add default via 10.0.0.1')

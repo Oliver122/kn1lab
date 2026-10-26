@@ -1,6 +1,5 @@
 # Antworten zu Versuch 3
 
-## 3.1
 
 ### 1.1 & 1.2
 
@@ -31,5 +30,12 @@ Zwei Möglichkeiten:
 
 2. Man ändert das Gateway-Addresse im Router am Interface r1-eth1 zu 10.0.1.1/29 
 
-## 3.2
+---
 
+### 2.1
+
+Für das Netz 10.0.2.0/25 haben wir den IP-Addressbreich von 10.0.2.0 bis 10.0.2.127 vorliegen, also 128. Hiervon müssen noch die Netzaddresse 10.0.2.0, die Gateway-Addresse 10.0.2.1 und die Broadcast-Addresse 10.0.2.127 abgezogen werden. Somit stehen uns insgesamt **125** Addressen im Bereich **10.0.2.2 - 10.0.2.126** zur freien Verfügung.
+
+### 2.2
+
+![Netzwerk-Abbildung erweitert](./3.1_page_2.png)
