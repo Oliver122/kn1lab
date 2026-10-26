@@ -19,7 +19,7 @@ class MyTopo(Topo):
         ben = self.addHost('ben', ip='10.0.0.5/26')
         elias = self.addHost('elias', ip='10.0.0.6/26')
 
-        nas = self.addHost('nas', ip='10.0.1.2/29')
+        nas = self.addHost('nas', ip='10.0.1.2/29') # oder hier: IP-Addresse zu 10.0.2.2/29 ändern
 
         # create switch
         sw1 = self.addSwitch('sw1')
@@ -42,9 +42,9 @@ class MyTopo(Topo):
 # configuration
 def conf(network):
     # router addresses
-    network['r1'].cmd('ip addr add 10.0.0.1/26 dev r1-eth0')
-    network['r1'].cmd('ip addr add 10.0.2.1/29 dev r1-eth1')
-    network['r1'].cmd('sysctl net.ipv4.conf.all.forwarding=1')
+    network['r1'].cmd('ip addr add 10.0.0.1/26 dev r1-eth0') # dev -> device : ordnet dem Interface r1-eth0 des Knotens r1 die Adresse 10.0.0.1/26 zu.
+    network['r1'].cmd('ip addr add 10.0.1.1/29 dev r1-eth1') # korrigiert von 10.0.2.1 -> 10.0.1.1
+    network['r1'].cmd('sysctl net.ipv4.conf.all.forwarding=1') # aktiviert einkommende Pakete, die nicht an die eigene Adresse gerichtet sind, weiterzuleiten
 
     # client routing
     network['ela'].cmd('ip route add default via 10.0.0.1')
@@ -53,7 +53,7 @@ def conf(network):
     network['lukas'].cmd('ip route add default via 10.0.0.1')
     network['elias'].cmd('ip route add default via 10.0.0.1')
 
-    network['nas'].cmd('ip route add default via 10.0.1.1')
+    network['nas'].cmd('ip route add default via 10.0.1.1') # !!! Beachten: das Default-Gatewway des NAS dementsprechend anpassen
 
 
 def nettopo(**kwargs):
