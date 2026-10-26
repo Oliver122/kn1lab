@@ -1,19 +1,25 @@
-import java.io.*;
-import java.net.*;
-import java.time.Duration;
-import java.util.concurrent.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketTimeoutException;
+import java.util.Scanner;
 
 /**
- * Die "Klasse" Sender liest einen String von der Konsole und zerlegt ihn in einzelne Worte. Jedes Wort wird in ein
- * einzelnes {@link Packet} verpackt und an das Medium verschickt. Erst nach dem Erhalt eines entsprechenden
- * ACKs wird das nächste {@link Packet} verschickt. Erhält der Sender nach einem Timeout von einer Sekunde kein ACK,
- * überträgt er das {@link Packet} erneut.
+ * Die Klasse Sender liest einen String von der Konsole und zerlegt ihn in einzelne Worte.
+ * Jedes Wort wird in ein einzelnes Packet verpackt und an das Medium verschickt.
  */
 public class Sender {
-    /**
-     * Hauptmethode, erzeugt Instanz des {@link Sender} und führt {@link #send()} aus.
-     * @param args Argumente, werden nicht verwendet.
-     */
+
+    private static final String TARGET_HOST = "localhost";
+    private static final int MEDIUM_PORT = 9997;
+    private static final int SENDER_PORT = 9998; 
+    private static final int TIMEOUT_MS = 1000;
+
     public static void main(String[] args) {
         Sender sender = new Sender();
         try {
@@ -23,38 +29,78 @@ public class Sender {
         }
     }
 
-    /**
-     * Erzeugt neuen Socket. Liest Text von Konsole ein und zerlegt diesen. Packt einzelne Worte in {@link Packet}
-     * und schickt diese an Medium. Nutzt {@link SocketTimeoutException}, um eine Sekunde auf ACK zu
-     * warten und das {@link Packet} ggf. nochmals zu versenden.
-     * @throws IOException Wird geworfen falls Sockets nicht erzeugt werden können.
-     */
     private void send() throws IOException {
-/*   	//Text einlesen und in Worte zerlegen
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Welche Nachricht möchten Sie senden?");
+        
+        String input = scanner.nextLine() + " EOT";
+        String[] message = input.split(" ");
 
-        // Socket erzeugen auf Port 9998 und Timeout auf eine Sekunde setzen
+        InetAddress targetAddress = InetAddress.getByName(TARGET_HOST);
 
-        // Iteration über den Konsolentext
-        while (true) {
-        	// Paket an Port 9997 senden
-        	
-            try {
-                // Auf ACK warten und erst dann Schleifenzähler inkrementieren
+        DatagramSocket socket = new DatagramSocket(SENDER_PORT);
+        
+        socket.setSoTimeout(TIMEOUT_MS);
 
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            } catch (SocketTimeoutException e) {
-            	System.out.println("Receive timed out, retrying...");
+        int seqNumber = 0;
+
+        for (String word : message) {
+            byte[] payloadBytes = word.getBytes();
+        
+            Packet packet = new Packet(
+                seqNumber,
+                0,
+                false,
+                payloadBytes
+            );
+
+            ByteArrayOutputStream bStream = new ByteArrayOutputStream();
+            ObjectOutputStream oStream = new ObjectOutputStream(bStream);
+            oStream.writeObject(packet);
+            oStream.flush();
+            byte[] sendData = bStream.toByteArray();
+
+            DatagramPacket udpSendPacket = new DatagramPacket(sendData, sendData.length, targetAddress, MEDIUM_PORT);
+            boolean ackReceived = false;
+            
+            while (!ackReceived) {
+                try {
+                    socket.send(udpSendPacket);
+                    
+                    System.out.println("Gesendet [Seq: " + seqNumber + "]: " + new String(packet.getPayload()));
+
+                    byte[] receiveBuffer = new byte[2048];
+                    DatagramPacket udpReceivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+
+                    socket.receive(udpReceivePacket);
+                
+                    ByteArrayInputStream bIn = new ByteArrayInputStream(
+                        udpReceivePacket.getData(), 
+                        0, 
+                        udpReceivePacket.getLength()
+                    );
+                    ObjectInputStream oIn = new ObjectInputStream(bIn);
+                    Packet ackPacket = (Packet) oIn.readObject();
+
+                    if (ackPacket.isAckFlag() && ackPacket.getAckNum() == seqNumber + payloadBytes.length) {
+                        System.out.println("--> ACK erhalten für Seq: " + ackPacket.getAckNum());
+                        ackReceived = true;
+                    } else {
+                        System.out.println("--> Falsches ACK erhalten (erwartet: " + seqNumber + ", erhalten: " + ackPacket.getAckNum() + "). Wiederhole...");
+                    }
+
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                } catch (SocketTimeoutException e) {
+                    System.out.println("Receive timed out, retrying...");
+                }
             }
+            
+            seqNumber += payloadBytes.length;
         }
         
-        // Wenn alle Packete versendet und von der Gegenseite bestätigt sind, Programm beenden
-        clientSocket.close();
-        
-        if(System.getProperty("os.name").equals("Linux")) {
-            clientSocket.disconnect();
-        }
-*/
-        System.exit(0);
+        socket.close();
+        scanner.close();
+        System.out.println("Übertragung beendet.");
     }
 }
